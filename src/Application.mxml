@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/halo"
+					   creationComplete="init()" showStatusBar="false">
+	
+	<fx:Style source="assets/style.css" />
+	
+	<fx:Script>
+		<![CDATA[
+			import com.destroytoday.desktop.ScreenCapture;
+			import com.destroytoday.desktop.ScreenCaptureImageFormat;
+			import com.destroytoday.desktop.ScreenCaptureMode;
+			import com.destroytoday.desktop.ScreenCaptureStorageType;
+			import com.destroytoday.events.ScreenCaptureEvent;
+			
+			import flash.display.Bitmap;
+			import flash.display.BitmapData;
+			import flash.events.Event;
+			
+			import mx.collections.ArrayList;
+			
+			public static const TIMESTAMP:String = "Timestamp";
+			public static const CUSTOM:String = "Custom";
+			
+			public var directory:File;
+			public var file:File;
+			
+			public var screenCapture:ScreenCapture;
+			
+			[Bindable]
+			public var filenameFormatData:ArrayList = new ArrayList([{id:TIMESTAMP, format:"YYYY-MM-DD HH.MM.SS"}, {id:CUSTOM, format: "Custom..."}]);
+			
+			[Bindable]
+			public var imageFormatData:ArrayList = new ArrayList([ScreenCaptureImageFormat.PNG, ScreenCaptureImageFormat.JPG, ScreenCaptureImageFormat.GIF]);
+			
+			[Bindable]
+			public var modeData:ArrayList = new ArrayList([ScreenCaptureMode.SCREEN, ScreenCaptureMode.SELECTION, ScreenCaptureMode.WINDOW, ScreenCaptureMode.INTERACTIVE]);
+			
+			[Bindable]
+			public var storageTypeData:ArrayList = new ArrayList([ScreenCaptureStorageType.FILE, ScreenCaptureStorageType.CLIPBOARD]);
+			
+			public function init():void {
+				screenCapture = new ScreenCapture();
+				directory = File.desktopDirectory;
+				
+				filepath.text = File.desktopDirectory.nativePath;
+				
+				screenCapture.addEventListener(ScreenCaptureEvent.CAPTURE, captureHandler);
+				directory.addEventListener(Event.SELECT, directorySelectHandler);
+			}
+			public function captureScreen():void {
+				nativeWindow.visible = false;
+				
+				if (storageType.selectedItem == ScreenCaptureStorageType.FILE) {
+					var path:String;
+					
+					if (filepath.text) {
+						path = directory.nativePath;
+					} else {
+						path = File.desktopDirectory.nativePath;
+					}
+					
+					if (filename.enabled && filename.text) path += File.separator + filename.text;
+					
+					screenCapture.saveToFile(path);
+				} else {
+					screenCapture.saveToClipboard();
+				}
+			}
+			
+			protected function directorySelectHandler(event:Event):void {
+				filepath.text = directory.nativePath;
+			}
+			
+			protected function modeChangeHandler(event:Event):void {
+				if (screenCapture) screenCapture.mode = captureMode.selectedItem;
+			}
+			protected function imageFormatChangeHandler(event:Event):void {
+				if (screenCapture) screenCapture.imageFormat = imageFormat.selectedItem;
+			}
+			protected function captureHandler(event:ScreenCaptureEvent):void {
+				nativeWindow.visible = true;
+				
+				if (event.storageType == ScreenCaptureStorageType.FILE) {
+					screenshot.load(event.url);
+				} else {
+					var bitmapData:BitmapData = Clipboard.generalClipboard.getData(ClipboardFormats.BITMAP_FORMAT) as BitmapData;
+					var bitmap:Bitmap = new Bitmap(bitmapData, "auto", true);
+					
+					screenshot.source = bitmap;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:layout>
+		<s:VerticalLayout gap="10" paddingLeft="10" paddingTop="10" paddingRight="10" paddingBottom="10" />
+	</s:layout>
+	
+	<mx:Image id="screenshot" width="100%" height="100%" smoothBitmapContent="true" horizontalAlign="center" verticalAlign="middle" />
+	
+	<s:HGroup gap="10" width="100%">
+		<s:TextInput id="filepath" editable="false" width="100%"
+					 skinClass="com.destroytoday.skins.TextInputSkin"
+					 enabled="{storageType.selectedItem == ScreenCaptureStorageType.FILE}" />
+		<s:Button label="Select directory" enabled="{filepath.enabled}"
+				  skinClass="com.destroytoday.skins.ButtonSkin"
+				  click="directory.browseForDirectory('Choose a directory to save to')" />
+	</s:HGroup>
+	
+	<s:HGroup gap="20">
+		<s:VGroup>
+			<s:HGroup verticalAlign="middle">
+				<s:Label text="Capture mode" />
+				<s:DropDownList id="captureMode"
+								labelField="mode" selectedIndex="0" dataProvider="{modeData}"
+								change="modeChangeHandler(event)"/>
+			</s:HGroup>
+			<s:HGroup verticalAlign="middle">
+				<s:Label text="Filename format" />
+				<s:DropDownList id="filenameFormat"
+								labelField="format" selectedIndex="0" dataProvider="{filenameFormatData}" width="200"
+								change="{filename.enabled = filenameFormat.selectedItem.id == CUSTOM}"/>
+			</s:HGroup>
+			<s:HGroup verticalAlign="middle" width="100%">
+				<s:Label id="filenameLabel" text="Filename" />
+				<s:TextInput id="filename" width="100%" skinClass="com.destroytoday.skins.TextInputSkin" />
+			</s:HGroup>
+			<s:HGroup verticalAlign="middle">
+				<s:Label text="Image type" />
+				<s:DropDownList id="imageFormat"
+								enabled="{storageType.selectedItem == ScreenCaptureStorageType.FILE}" 
+								selectedIndex="0" dataProvider="{imageFormatData}"
+								change="imageFormatChangeHandler(event)"/>
+			</s:HGroup>
+			<s:HGroup verticalAlign="middle">
+				<s:Label text="Storage type" />
+				<s:DropDownList id="storageType"
+								labelField="mode" selectedIndex="0" dataProvider="{storageTypeData}" />
+			</s:HGroup>
+		</s:VGroup>
+		<s:VGroup>
+			<s:CheckBox id="cursor" label="Include cursor"
+						enabled="{captureMode.selectedItem == ScreenCaptureMode.SCREEN}"
+						change="{screenCapture.includeCursor = cursor.selected}" />
+			<s:CheckBox id="mainMonitor" label="Main monitor only"
+						enabled="{captureMode.selectedItem == ScreenCaptureMode.SCREEN}"
+						change="{screenCapture.mainMonitorOnly = mainMonitor.selected}" />
+			<s:CheckBox id="muteSound" label="Mute sound"
+						change="{screenCapture.muteSound = muteSound.selected}" />
+			<s:CheckBox id="displayErrors" label="Display graphical system errors"
+						change="{screenCapture.displayErrors = displayErrors.selected}" />
+			<s:HGroup verticalAlign="middle">
+				<s:NumericStepper id="delay" minimum="0" maximum="10" 
+								  change="{screenCapture.delay = delay.value * 1000}" />
+				<s:Label text="delay (in seconds)" />
+			</s:HGroup>
+		</s:VGroup>
+	</s:HGroup>
+	
+	<mx:Spacer height="10" />
+	
+	<s:Group width="100%">
+		<s:Button right="0" bottom="0"
+				  label="Capture screen" skinClass="com.destroytoday.skins.ButtonSkin"
+				  click="captureScreen()" />
+	</s:Group>
+</s:WindowedApplication>

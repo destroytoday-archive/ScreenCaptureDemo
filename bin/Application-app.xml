@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<application xmlns="http://ns.adobe.com/air/application/2.0beta">
+	<id>com.destroytomorrow.ScreenCaptureDemo</id>
+	<filename>ScreenCaptureDemo</filename>
+	<name>ScreenCaptureDemo</name>
+	<version>1.0</version>
+	<supportedProfiles>extendedDesktop</supportedProfiles>
+	<description>ScreenCaptureDemo is a Mac-only AIR app, demonstrating the functionality of the ScreenCapture class.</description>
+	<copyright>Destroy Today © 2006–2009</copyright>
+
+	<initialWindow>
+		<content>Application.swf</content>
+		<width>600</width>
+		<height>700</height>
+	</initialWindow>
+</application>
